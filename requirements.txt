@@ -1,0 +1,21 @@
+# Verified against the versions on the right; lower bounds so the repo does not
+# rot, upper bounds on the two libraries whose APIs actually move.
+pandas>=2.2                 # tested on 3.0.2
+numpy>=2.0                  # tested on 2.4.4
+scikit-learn>=1.5           # tested on 1.8.0
+lightgbm>=4.3               # tested on 4.7.0
+xgboost>=2.0                # tested on 3.4.1
+catboost>=1.2               # tested on 1.2.10
+optuna>=4.0                 # tested on 5.0.0
+mlflow>=3.1,<4              # registry aliases and log_model(name=...) need 3.x
+shap>=0.45
+streamlit>=1.38
+plotly>=5.22
+fastapi>=0.112
+uvicorn[standard]>=0.30
+pydantic>=2.8
+pyyaml>=6.0
+matplotlib>=3.8
+cloudpickle>=3.0
+pytest>=8.0
+ruff>=0.6

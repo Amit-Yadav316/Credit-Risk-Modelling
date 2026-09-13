@@ -1,0 +1,44 @@
+# One image, three roles. The API and UI never talk to the filesystem for models,
+# only to the registry, which is what makes promotion a registry operation.
+x-app: &app
+  build: .
+  environment:
+    MLFLOW_TRACKING_URI: http://mlflow:5000
+  depends_on:
+    mlflow:
+      condition: service_healthy
+
+services:
+  mlflow:
+    build: .
+    command: >
+      mlflow server --host 0.0.0.0 --port 5000
+      --backend-store-uri sqlite:////mlflow/mlflow.db
+      --default-artifact-root /mlflow/artifacts
+    ports: ["5000:5000"]
+    volumes: ["mlflow-store:/mlflow"]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  api:
+    <<: *app
+    ports: ["8000:8000"]
+
+  ui:
+    <<: *app
+    command: streamlit run app/streamlit_app.py --server.port 8501 --server.address 0.0.0.0
+    ports: ["8501:8501"]
+
+  trainer:
+    <<: *app
+    profiles: ["train"]
+    command: >
+      sh -c "python scripts/make_synthetic_data.py &&
+             python -m credit_risk.pipelines.train_pipeline"
+    volumes: ["./data:/opt/app/data"]
+
+volumes:
+  mlflow-store:

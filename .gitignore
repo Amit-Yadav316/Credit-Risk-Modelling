@@ -1,0 +1,34 @@
+# Virtualenv and build
+.venv/
+__pycache__/
+*.egg-info/
+build/
+dist/
+
+# Raw source data. The Lending Club dump is 1.6 GB, far past GitHub's 100 MB
+# per-file limit, and the adapted book is 80 MB of derived data that anyone can
+# regenerate with scripts/adapters/lending_club.py.
+accepted_*.csv
+accepted_*.csv.gz
+rejected_*.csv
+rejected_*.csv.gz
+data/raw/*.csv
+!data/raw/.gitkeep
+
+# MLflow local backing store and artifacts
+mlruns/
+mlflow.db
+ci.db
+catboost_info/
+
+# Tooling caches
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.ipynb_checkpoints/
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
