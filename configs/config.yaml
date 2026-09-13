@@ -1,0 +1,103 @@
+data:
+  raw_path: data/raw/loans.csv
+  target: default_flag
+  date_col: disbursal_date
+  id_col: application_id
+  oot_months: 3
+  test_size: 0.2
+  random_state: 42
+
+features:
+  numeric:
+    - loan_amount
+    - annual_income
+    - tenure_months
+    - interest_rate
+    - num_open_accounts
+    - num_delinquent_accounts
+    - credit_utilisation
+    - bureau_score
+    - months_since_delinq
+    - public_records
+    - debt_to_income
+    - enquiries_6m
+    - credit_history_months
+    - revolving_balance
+    - total_accounts
+    - installment_amount
+    - months_since_public_record
+  categorical:
+    - loan_purpose
+    - employment_type
+    - residence_type
+    - state
+    - income_verification
+  derived:
+    - lti_ratio
+    - emi_to_income
+    - delinq_recency
+    - utilisation_band
+    - installment_to_income
+    - revol_bal_to_income
+    - open_to_total_accounts
+    - public_record_recency
+
+scorecard:
+  base_score: 600
+  base_odds: 5.75
+  pdo: 40
+  min_score: 300
+  max_score: 900
+  policy:
+    approve_above: 620
+    refer_above: 550
+
+training:
+  # 25 trials across four model families, not 40 across two. TPE concentrates
+  # where the score is improving, so the marginal trial is worth less than the
+  # marginal family: a fourth algorithm explores more of the space than fifteen
+  # more draws from the same one.
+  n_trials: 25
+  cv_folds: 5
+  primary_metric: roc_auc
+  # Rows the Optuna search runs on. The winning configuration is always refitted
+  # on the whole training window, so this trades search fidelity for wall clock,
+  # never the size of the book the shipped model learned from. null searches the
+  # full window.
+  tune_sample_size: 25000
+  models:
+    - logistic
+    - lightgbm
+    - xgboost
+    # catboost is implemented and tested, but not in the default run. Its
+    # full-size refit on 466,964 rows, tripled by the isotonic calibration folds,
+    # was killed by the OS for memory on a 16 GB machine. Add it back if you have
+    # the headroom -- and keep one_hot_max_size, which took a fixed-budget fit
+    # from 82.4s to 8.4s at an identical AUC of 0.6884.
+    # - catboost
+
+mlflow:
+  tracking_uri: sqlite:///mlflow.db
+  experiment: credit-risk-underwriting
+  registered_model: credit_risk_scorer
+
+promotion:
+  # Thresholds a candidate must clear before it can take the champion or
+  # challenger alias. Set any of them to null to switch that check off.
+  #
+  # Calibrated to this portfolio. CLAUDE.md records the expectation for this book
+  # once grade and the post-origination columns are excluded: OOT AUC 0.68 to
+  # 0.72 and KS 0.28 to 0.35. The floors sit at the bottom of that band, so a
+  # sound model promotes and a genuinely broken one still does not.
+  min_oot_auc: 0.68
+  min_oot_ks: 0.28
+  # Population stability of the score between the training and out-of-time
+  # windows. Above 0.25 the book has moved enough to refit.
+  max_score_psi: 0.25
+  # An in-time score that collapses out of time means the model found something
+  # that does not survive the next quarter.
+  max_test_oot_auc_gap: 0.05
+
+monitoring:
+  psi_threshold: 0.25
+  psi_bins: 10
